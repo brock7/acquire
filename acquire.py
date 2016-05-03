@@ -9,10 +9,14 @@ import json
 import ssl
 import pdb
 import sys
+#import webbrowser
+import tempfile
+import os
+import locale
 
 configs = open('config.txt').readlines()
 if len(configs) < 2:
-	print u'无效的配置'
+	print '无效的配置'
 	sys.exit(-1)
 	
 userId = configs[0].strip()
@@ -30,8 +34,22 @@ opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(site_cookie),
 	urllib2.HTTPSHandler(context=context))
 
 def login():
-	try:		
-		req = urllib2.Request(webreq_url + '/server/ws/pub/token/access_token/ownpwd?client_id=inspect&login_type=oa&password=%s&redirect_uri=%%2Fws%%2Fauth%%2Fuser%%2Flogin&response_type=token&user_id=%s' % (passwd, userId))
+	try:
+		
+		#pdb.set_trace()
+		# 
+		# webbrowser.open('http://keyaws.gf.com.cn/kaptcha.jpg?_t=%d' % time.time() * 1000)
+		req = urllib2.Request(webreq_url + '/kaptcha.jpg?_t=%d' % (time.time() * 1000))
+		req.add_header('User-agent', user_agent)
+		response = opener.open(req)
+		img = response.read()
+		tmpfile = tempfile.NamedTemporaryFile(suffix = '.jpg', delete = False)  
+		tmpfile.write(img)
+		tmpfile.close()
+		os.system("start " + tmpfile.name)
+		print tmpfile.name
+		kaptcha = raw_input('输入验证码:'.decode('utf-8').encode(locale.getpreferredencoding()))
+		req = urllib2.Request(webreq_url + '/server/ws/pub/token/access_token/ownpwd?client_id=inspect&kaptcha=%s&login_type=oa&password=%s&redirect_uri=%%2Fws%%2Fauth%%2Fuser%%2Flogin&response_type=token&user_id=%s' % (kaptcha, passwd, userId))
 		#req = urllib2.Request('https://key.gf.com.cn/ws/pub/token/access_token/ownpwd?client_id=inspect&login_type=oa&password=%s&redirect_uri=%%2Fws%%2Fauth%%2Fuser%%2Flogin&response_type=token&user_id=%s' % (passwd, userId))
 		req.add_header('User-agent', user_agent)
 		response = opener.open(req, '')
@@ -144,6 +162,9 @@ def acquire(sid, cookies):
 		ws.send('2')
 		print ws.recv()
 
+reload(sys)
+# sys.setdefaultencoding(locale.getpreferredencoding())
+sys.setdefaultencoding('utf-8')
 login()
 # sys.exit(0)
 while True:
@@ -151,6 +172,7 @@ while True:
 	if len(sid) == 0:
 		continue
 	acquire(sid, cookies)
-	break
+	# break
+	print '================================================================'
 	time.sleep(120)
 	
