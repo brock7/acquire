@@ -128,7 +128,7 @@ def acquire(sid, cookies):
 			
 		msg2 = msg[2:]
 		try:
-			jpkt = json.loads(msg2)
+			jpkt = json.loads(msg2.decode('utf-8-sig'))
 		except:
 			print msg
 			ws.send('2')
