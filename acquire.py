@@ -23,8 +23,11 @@ userId = configs[0].strip()
 passwd = configs[1].strip()
 
 webreq_url = 'http://keyaws.gf.com.cn'
-websocket_url = 'http://54.223.58.164:3000'
-websocket_url2 = 'ws://54.223.58.164:3000'
+#websocket_url = 'http://54.223.58.164:3000'
+#websocket_url2 = 'ws://54.223.58.164:3000'
+websocket_url = 'http://54.223.67.150:80'
+websocket_url2 = 'ws://54.223.67.150:80'
+
 
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0'
 context = ssl._create_unverified_context()
@@ -46,7 +49,7 @@ def login():
 		tmpfile = tempfile.NamedTemporaryFile(suffix = '.jpg', delete = False)  
 		tmpfile.write(img)
 		tmpfile.close()
-		os.system("start " + tmpfile.name)
+		os.system("open " + tmpfile.name)
 		print tmpfile.name
 		kaptcha = raw_input('输入验证码:'.decode('utf-8').encode(locale.getpreferredencoding()))
 		req = urllib2.Request(webreq_url + '/server/ws/pub/token/access_token/ownpwd?client_id=inspect&kaptcha=%s&login_type=oa&password=%s&redirect_uri=%%2Fws%%2Fauth%%2Fuser%%2Flogin&response_type=token&user_id=%s' % (kaptcha, passwd, userId))
