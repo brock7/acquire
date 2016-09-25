@@ -25,8 +25,8 @@ passwd = configs[1].strip()
 webreq_url = 'http://keyaws.gf.com.cn'
 #websocket_url = 'http://54.223.58.164:3000'
 #websocket_url2 = 'ws://54.223.58.164:3000'
-websocket_url = 'http://54.223.67.150:80'
-websocket_url2 = 'ws://54.223.67.150:80'
+websocket_url = 'http://conn10.gf.com.cn:80'
+websocket_url2 = 'ws://conn10.gf.com.cn:80'
 
 
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0'
@@ -35,6 +35,8 @@ site_cookie = cookielib.CookieJar()
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(site_cookie), 
 	# urllib2.ProxyHandler({'https' : 'http://127.0.0.1:8080', 'http' : 'http://127.0.0.1:8080'}), 
 	urllib2.HTTPSHandler(context=context))
+
+clickeggsToken = ''
 
 def login():
 	try:
@@ -84,6 +86,10 @@ def getSid():
 		cookies = ''
 		for item in site_cookie:
 			cookies += '{0}={1}; '.format(item.name, item.value)
+			if item.name == 'clickeggsToken':
+				global clickeggsToken
+				clickeggsToken = item.value
+			print item.name, item.value
 	
 		sid = jpkt['sid']
 		req = urllib2.Request(websocket_url + "/socket.io/?EIO=3&transport=polling&t=%d-2&sid=%s" % (time.time() * 1000, sid))
@@ -104,6 +110,41 @@ def getSid():
     	return '', ''
 
 def acquire(sid, cookies):
+
+	# register
+	req = urllib2.Request(websocket_url + "/socket.io/?EIO=3&transport=polling&t=%d-2&sid=%s" % (time.time() * 1000, sid))
+	req.add_header('User-agent', user_agent)
+	req.add_header('Referer', 'http://key.gf.com.cn/')
+	req.add_header('Origin', 'http://key.gf.com.cn/')
+	req.add_header('Connection', 'keep-alive')
+	print 'clickeggsToken:', clickeggsToken
+	response = opener.open(req, 
+			'180:420["request",{"ver":2,"data":{"appId":"clickeggs.gf.com.cn","regId":"8d9e0f92393acb0a43e7f206ceeeec3220a2f145","token":"%s","event":"addRegId"}}]' % (clickeggsToken))
+	html = response.read()
+	print html
+
+	req = urllib2.Request(websocket_url + "/socket.io/?EIO=3&transport=polling&t=%d-2&sid=%s" % (time.time() * 1000, sid))
+	req.add_header('User-agent', user_agent)
+	req.add_header('Referer', 'http://key.gf.com.cn/')
+	req.add_header('Origin', 'http://key.gf.com.cn/')
+	req.add_header('Connection', 'keep-alive')
+	response = opener.open(req)
+	html = response.read()
+	print html
+
+	req = urllib2.Request(websocket_url + "/socket.io/?EIO=3&transport=polling&t=%d-2&sid=%s" % (time.time() * 1000, sid))
+	req.add_header('User-agent', user_agent)
+	req.add_header('Referer', 'http://key.gf.com.cn/')
+	req.add_header('Origin', 'http://key.gf.com.cn/')
+	req.add_header('Connection', 'keep-alive')
+	print 'clickeggsToken:', clickeggsToken
+	response = opener.open(req, '50:421["request",{"data":{"event":"getPrivateData"}}]')
+	html = response.read()
+	print html
+
+
+	##################################################################
+
 	ws = websocket.WebSocket()
 
 	#ws.connect("ws://clickeggs.hippo.gf.com.cn/socket.io/?EIO=3&transport=websocket&sid=%s" % (time.time() * 1000, jpkt['sid']), Cookie = cookies)
@@ -117,13 +158,15 @@ def acquire(sid, cookies):
 
 	ws.send('5')
 	# print ws.recv()
-
+	"""
 	ws.send('42["message",{"topic":"gmsv2.service.getuser","data":{"data":{"uid":"%s","version":"2.0"},"msgid":1}}]' % (userId))
 	ws.send('42["message",{"topic":"gmsv2.service.getuser","data":{"data":{"uid":"%s","version":"2.0"},"msgid":2}}]' % (userId))
 	# print ws.recv()
 
 	ws.send('42["message",{"topic":"pns","data":{"data":{"event":"addRegId","regIds":["8d9e0f92393acb0a43e7f206ceeeec3220a2f145","5977"],"uuid":"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0","seq":3}}}]')
 	ws.send('42["message",{"topic":"pns","data":{"data":{"event":"addRegId","regIds":["8d9e0f92393acb0a43e7f206ceeeec3220a2f145","5977"],"uuid":"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0","seq":4}}}]')
+	"""
+
 	while True:
 		msg = ws.recv()
 		if len(msg) == 0:
@@ -138,21 +181,12 @@ def acquire(sid, cookies):
 			print ws.recv()
 			continue
 		# print jpkt
-		if jpkt[1]['topic'] == 'gmsv2.order.new':			
-			data = jpkt[1]['data']['data']
-			jpkt = json.loads(data)
-			orderId = jpkt['data']['message'][0]['order_id']
-			clientName = jpkt['data']['message'][0]['client_name']
-			
-			print orderId, clientName #, len(jpkt['data']['message'])
-		
-			"""
-			if clientName == u'蚂蚁金服用户':
-				print u'忽略蚂蚁金服用户'
-				ws.send('2')
-				print ws.recv()
-				continue
-			"""
+		if jpkt[1]['data']["messages"][0]['type'] == 'newOrders':
+			orderId = jpkt[1]['data']["messages"][0]['content'][0]['order_id']
+			clientName = jpkt[1]['data']["messages"][0]['content'][0]['client_name']
+			desc = jpkt[1]['data']["messages"][0]['content'][0]['description']
+			print orderId, clientName, desc
+
 			req = urllib2.Request(webreq_url + "/v2/order/%s/snatchrequest" % (orderId))
 			req.add_header('User-agent', user_agent)
 			response = opener.open(req, '')
@@ -162,6 +196,26 @@ def acquire(sid, cookies):
 			jpkt = json.loads(html)
 			if jpkt['status'] == '200':
 				break;
+
+		"""
+		if jpkt[1]['topic'] == 'gmsv2.order.new':			
+			data = jpkt[1]['data']['data']
+			jpkt = json.loads(data)
+			orderId = jpkt['data']['message'][0]['order_id']
+			clientName = jpkt['data']['message'][0]['client_name']
+			
+			print orderId, clientName #, len(jpkt['data']['message'])
+		
+			req = urllib2.Request(webreq_url + "/v2/order/%s/snatchrequest" % (orderId))
+			req.add_header('User-agent', user_agent)
+			response = opener.open(req, '')
+			html = response.read()
+			# jpkt = json.loads(html)
+			print html.decode('utf-8')
+			jpkt = json.loads(html)
+			if jpkt['status'] == '200':
+				break;
+		"""
 		ws.send('2')
 		print ws.recv()
 
@@ -174,6 +228,9 @@ while True:
 	(sid, cookies) = getSid()
 	if len(sid) == 0:
 		continue
+	print "sid: " + sid
+	print "cookies: " + cookies
+
 	acquire(sid, cookies)
 	# break
 	print '================================================================'
